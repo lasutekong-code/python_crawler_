@@ -4,22 +4,53 @@ on:
   schedule:
     - cron: '0 21 * * *'   # 매일 06:00(KST) 자동 실행
   workflow_dispatch:        # Actions 탭 수동 실행 버튼 추가
+  pull_request:
+    paths:
+      - '.github/workflows/python-package.yml'
+      - 'README.md'
+      - 'crawl_news.py'
+      - 'requirements.txt'
+      - 'tests/**'
 
 permissions:
-  contents: write            # 저장소에 커밋·푸시할 권한 부여
+  contents: read
 
 jobs:
-  crawl:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+
+  crawl:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write            # 저장소에 커밋·푸시할 권한 부여
+    concurrency:
+      group: daily-news-crawler-${{ github.workflow }}-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r requirements.txt
       - run: python crawl_news.py
       - run: |
+          set -euo pipefail
           git config --global user.name 'github-actions'
           git config --global user.email 'actions@github.com'
-          git add .
-          git commit -m "Update news" || echo "변경 없음"
+          git add docs/index.md
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "Update news"
           git push origin HEAD:${{ github.ref_name }}
