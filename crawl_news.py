@@ -80,7 +80,7 @@ def _emit_failure_summary(message: str) -> None:
     )
 
 
-def _retry_after_seconds(header_value: str | None) -> float | None:
+def _retry_after_seconds(header_value: str | None, *, wall_time=time.time) -> float | None:
     if not header_value:
         return None
 
@@ -94,7 +94,7 @@ def _retry_after_seconds(header_value: str | None) -> float | None:
     except (TypeError, ValueError, IndexError):
         return None
 
-    return max(0.0, retry_at.timestamp() - time.time())
+    return max(0.0, retry_at.timestamp() - wall_time())
 
 
 def _classify_connection_error(exc: requests.ConnectionError) -> tuple[str, bool]:
@@ -124,6 +124,7 @@ def fetch_html(
     session_factory=create_session,
     sleep=time.sleep,
     monotonic=time.monotonic,
+    wall_time=time.time,
     connect_timeout: float = DEFAULT_CONNECT_TIMEOUT,
     read_timeout: float = DEFAULT_READ_TIMEOUT,
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
@@ -148,7 +149,10 @@ def fetch_html(
                     retry_elapsed = monotonic() - retry_started_at
                     can_retry = attempt < max_attempts and retry_elapsed < retry_budget_seconds
                     if can_retry:
-                        delay = _retry_after_seconds(response.headers.get("Retry-After"))
+                        delay = _retry_after_seconds(
+                            response.headers.get("Retry-After"),
+                            wall_time=wall_time,
+                        )
                         if delay is None:
                             delay = min(backoff_seconds * (2 ** (attempt - 1)), max_backoff_seconds)
                         delay = min(delay, max(0.0, retry_budget_seconds - retry_elapsed))

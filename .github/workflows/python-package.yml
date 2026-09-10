@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   test:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +28,6 @@ jobs:
 
   crawl:
     if: github.event_name != 'pull_request'
-    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
