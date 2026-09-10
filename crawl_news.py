@@ -244,8 +244,6 @@ def parse_top_news(html: str) -> list[tuple[str, str]]:
     anchors = section.select("ul li strong a")[:10]
     if not anchors:
         raise CrawlError("뉴스 목록을 찾지 못했습니다. 페이지 구조가 변경되었을 수 있습니다.")
-    if len(anchors) < 10:
-        raise CrawlError("상위 뉴스 10건을 모두 찾지 못했습니다. 페이지 구조를 확인해 주세요.")
 
     news_items = []
     for index, anchor in enumerate(anchors, start=1):

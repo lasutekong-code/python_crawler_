@@ -151,19 +151,29 @@ class CrawlNewsTests(unittest.TestCase):
         self.assertEqual(permanent_clock.sleeps, [])
         self.assertTrue(permanent_session.closed)
 
-    def test_parse_top_news_rejects_missing_and_empty_markup(self):
-        with self.assertRaises(crawl_news.CrawlError):
-            crawl_news.parse_top_news("<html><body></body></html>")
-
-        too_short_html = """
+    def test_parse_top_news_returns_normalized_links(self):
+        html = """
         <section class="textthumb">
           <ul>
-            <li><strong><a href="/1">하나</a></strong></li>
+            <li><strong><a href="/news1">첫 번째</a></strong></li>
+            <li><strong><a href="https://m.etnews.com/news2">두 번째</a></strong></li>
           </ul>
         </section>
         """
+
+        news_items = crawl_news.parse_top_news(html)
+
+        self.assertEqual(
+            news_items,
+            [
+                ("첫 번째", "https://m.etnews.com/news1"),
+                ("두 번째", "https://m.etnews.com/news2"),
+            ],
+        )
+
+    def test_parse_top_news_rejects_missing_and_empty_markup(self):
         with self.assertRaises(crawl_news.CrawlError):
-            crawl_news.parse_top_news(too_short_html)
+            crawl_news.parse_top_news("<html><body></body></html>")
 
         html = """
         <section class="textthumb">
