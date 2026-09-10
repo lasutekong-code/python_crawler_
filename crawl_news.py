@@ -2,7 +2,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -94,12 +94,21 @@ def _retry_after_seconds(header_value: str | None, *, wall_time=time.time) -> fl
     except (TypeError, ValueError, IndexError):
         return None
 
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=UTC)
+
     return max(0.0, retry_at.timestamp() - wall_time())
 
 
 def _classify_connection_error(exc: requests.ConnectionError) -> tuple[str, bool]:
     message = str(exc).lower()
-    if "name or service not known" in message or "temporary failure in name resolution" in message:
+    dns_markers = (
+        "name or service not known",
+        "temporary failure in name resolution",
+        "nodename nor servname provided, or not known",
+        "getaddrinfo failed",
+    )
+    if any(marker in message for marker in dns_markers):
         return "dns-failure", True
     return "connection-error", True
 

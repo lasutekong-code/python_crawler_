@@ -175,6 +175,13 @@ class CrawlNewsTests(unittest.TestCase):
             ],
         )
 
+    def test_classify_connection_error_detects_cross_platform_dns_messages(self):
+        category, transient = crawl_news._classify_connection_error(
+            requests.ConnectionError("getaddrinfo failed")
+        )
+        self.assertEqual(category, "dns-failure")
+        self.assertTrue(transient)
+
     def test_parse_top_news_rejects_missing_and_empty_markup(self):
         with self.assertRaises(crawl_news.CrawlError):
             crawl_news.parse_top_news("<html><body></body></html>")
