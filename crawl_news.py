@@ -175,7 +175,9 @@ def fetch_html(
                     )
 
                 response.raise_for_status()
-                return response.text
+                response_text = response.text
+                response.close()
+                return response_text
             except requests.ConnectTimeout as exc:
                 category = "connect-timeout"
                 transient = True

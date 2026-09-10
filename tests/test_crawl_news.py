@@ -58,10 +58,11 @@ class FakeSession:
 class CrawlNewsTests(unittest.TestCase):
     def test_fetch_html_retries_timeout_then_recovers(self):
         clock = FakeClock()
+        success_response = FakeResponse(text="<html>ok</html>")
         session = FakeSession(
             [
                 requests.ConnectTimeout("connect timeout"),
-                FakeResponse(text="<html>ok</html>"),
+                success_response,
             ]
         )
 
@@ -80,6 +81,7 @@ class CrawlNewsTests(unittest.TestCase):
         self.assertEqual(len(session.calls), 2)
         self.assertEqual(clock.sleeps, [1])
         self.assertTrue(session.closed)
+        self.assertTrue(success_response.closed)
 
     def test_fetch_html_raises_after_retry_exhaustion(self):
         clock = FakeClock()
@@ -110,10 +112,11 @@ class CrawlNewsTests(unittest.TestCase):
 
     def test_fetch_html_retries_transient_http_and_fails_fast_on_permanent_http(self):
         clock = FakeClock()
+        success_response = FakeResponse(text="<html>recovered</html>")
         retry_session = FakeSession(
             [
                 FakeResponse(status_code=503),
-                FakeResponse(text="<html>recovered</html>"),
+                success_response,
             ]
         )
 
@@ -131,6 +134,7 @@ class CrawlNewsTests(unittest.TestCase):
         self.assertEqual(html, "<html>recovered</html>")
         self.assertEqual(clock.sleeps, [1])
         self.assertTrue(retry_session.closed)
+        self.assertTrue(success_response.closed)
 
         permanent_clock = FakeClock()
         permanent_session = FakeSession([FakeResponse(status_code=404)])
@@ -205,6 +209,20 @@ class CrawlNewsTests(unittest.TestCase):
                 "1. [첫 번째 뉴스](https://m.etnews.com/1)\n"
                 "2. [두 번째 뉴스](https://m.etnews.com/2)\n",
             )
+
+    def test_write_markdown_cleans_up_temp_file_when_replace_fails(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_file = Path(temp_dir) / "docs" / "index.md"
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with patch.object(crawl_news.os, "replace", side_effect=OSError("replace failed")):
+                with self.assertRaises(crawl_news.CrawlError):
+                    crawl_news.write_markdown(
+                        [("첫 번째 뉴스", "https://m.etnews.com/1")],
+                        output_file=output_file,
+                    )
+
+            self.assertEqual(list(output_file.parent.glob(".*.tmp")), [])
 
     def test_main_preserves_existing_output_on_fetch_failure(self):
         with tempfile.TemporaryDirectory() as temp_dir:
