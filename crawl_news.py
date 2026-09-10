@@ -238,8 +238,6 @@ def fetch_html(
     finally:
         session.close()
 
-    raise CrawlError(_build_failure_message(host, "retry-exhausted", max_attempts, max_attempts, monotonic() - started_at, "unknown"))
-
 
 def parse_top_news(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
