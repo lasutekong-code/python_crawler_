@@ -12,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DOCS_DIR = BASE_DIR / "docs"
 OUTPUT_FILE = DOCS_DIR / "index.md"
 
+BASE_URL = "https://m.etnews.com"
 URL = "https://m.etnews.com/news/hot_content_list.html"
 
 
@@ -85,7 +86,7 @@ def write_markdown(top):
             raise CrawlError(f"{i}번째 뉴스 제목이 비어 있습니다.")
         if not href:
             raise CrawlError(f"{i}번째 뉴스 링크를 찾지 못했습니다.")
-        lines.append(f"{i}. [{title}]({urljoin(URL, href)})")
+        lines.append(f"{i}. [{title}]({urljoin(BASE_URL, href)})")
 
     try:
         OUTPUT_FILE.write_text("\n".join(lines) + "\n", encoding='utf-8')
