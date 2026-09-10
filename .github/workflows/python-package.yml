@@ -44,5 +44,5 @@ jobs:
           fi
           git commit -m "Update news"
           echo "[git] Pushing updated docs/index.md"
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
           echo "[git] Push completed"
