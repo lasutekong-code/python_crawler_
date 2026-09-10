@@ -258,7 +258,7 @@ def parse_top_news(html: str) -> list[tuple[str, str]]:
     return news_items
 
 
-def write_markdown(top_news: list[tuple[str, str]], *, output_file: Path = OUTPUT_FILE) -> None:
+def write_markdown(top_news: list[tuple[str, str]], *, output_file: Path = OUTPUT_FILE) -> Path:
     output_file.parent.mkdir(parents=True, exist_ok=True)
     today = datetime.now().strftime("%Y-%m-%d")
     content_lines = [f"# {today} 많이 본 뉴스", ""]
@@ -285,12 +285,14 @@ def write_markdown(top_news: list[tuple[str, str]], *, output_file: Path = OUTPU
             temp_file_path.unlink(missing_ok=True)
         raise CrawlError(f"출력 파일을 저장하지 못했습니다: {output_file}") from exc
 
+    return output_file
+
 
 def main() -> int:
     try:
         html = fetch_html(URL)
         top_news = parse_top_news(html)
-        write_markdown(top_news)
+        output_file = write_markdown(top_news)
     except CrawlError as exc:
         message = str(exc)
         print(f"[crawler] ERROR: {message}", file=sys.stderr)
@@ -302,7 +304,7 @@ def main() -> int:
         _emit_failure_summary(message)
         return 1
 
-    print(f"[crawler] Wrote {len(top_news)} items to {OUTPUT_FILE}")
+    print(f"[crawler] Wrote {len(top_news)} items to {output_file}")
     return 0
 
 

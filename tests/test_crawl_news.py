@@ -190,7 +190,7 @@ class CrawlNewsTests(unittest.TestCase):
             output_file = Path(temp_dir) / "docs" / "index.md"
             with patch.object(crawl_news, "datetime") as mocked_datetime:
                 mocked_datetime.now.return_value.strftime.return_value = "2026-09-10"
-                crawl_news.write_markdown(
+                written_path = crawl_news.write_markdown(
                     [
                         ("첫 번째 뉴스", "https://m.etnews.com/1"),
                         ("두 번째 뉴스", "https://m.etnews.com/2"),
@@ -198,6 +198,7 @@ class CrawlNewsTests(unittest.TestCase):
                     output_file=output_file,
                 )
 
+            self.assertEqual(written_path, output_file)
             self.assertEqual(
                 output_file.read_text(encoding="utf-8"),
                 "# 2026-09-10 많이 본 뉴스\n\n"
