@@ -11,15 +11,40 @@ permissions:
 jobs:
   crawl:
     runs-on: ubuntu-latest
+    env:
+      PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install -r requirements.txt
-      - run: python crawl_news.py
-      - run: |
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          echo "[install] Starting dependency installation"
+          python --version
+          pip --version
+          pip install -r requirements.txt
+          echo "[install] Dependency installation completed"
+      - name: Run crawler
+        run: |
+          set -euo pipefail
+          echo "[crawl] Starting news crawl"
+          python crawl_news.py
+          echo "[crawl] News crawl completed"
+      - name: Commit and push changes
+        run: |
+          set -euo pipefail
+          echo "[git] Preparing commit"
           git config --global user.name 'github-actions'
           git config --global user.email 'actions@github.com'
-          git add .
-          git commit -m "Update news" || echo "변경 없음"
-          git push origin HEAD:${{ github.ref_name }}
+          git add docs/index.md
+          if git diff --cached --quiet; then
+            echo "[git] No content changes to commit."
+            exit 0
+          fi
+          git commit -m "Update news"
+          echo "[git] Pushing updated docs/index.md"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          echo "[git] Push completed"
